@@ -1,0 +1,61 @@
+services:
+  traefik:
+    image: traefik:3.5.2
+    ports:
+      # Exposes port 80 for incomming web requests
+      - 80:80
+      - 443:443
+      # The Web UI port http://0.0.0.0:8080 (enabled by --api.insecure=true)
+      - 8080:8080
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./app/traefik/conf/traefik.yml:/etc/traefik/traefik.yml
+
+  postgres:
+    # Extend official images with postgres-contrib
+    image: postgres:latest-contrib
+    build: app/postgres
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+    labels:
+        - traefik.enable=true
+        - traefik.tcp.routers.postgres.rule=HostSNI(`*`)
+        - traefik.tcp.routers.postgres.entrypoints=postgres
+        - traefik.tcp.services.postgres.loadbalancer.server.port=$POSTGRES_RPC_PORT
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Volume with custom scripts to be run after database initialization
+      - ./app/postgres/scripts:/docker-entrypoint-initdb.d
+
+  jira:
+    image: atlassian/jira-software
+    depends_on:
+      - postgres
+    environment:
+      - VERBOSE_LOGS
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.jira.rule=Host(`$JIRA_DNS`)
+      - traefik.http.routers.jira.entrypoints=web
+      - traefik.http.routers.jira.service=jira
+      - traefik.http.services.jira.loadbalancer.server.port=8080
+    volumes:
+      - jira-data:/var/atlassian/application-data/jira
+      - ./app/postgres/jars/postgresql-42.7.3.jar:/opt/atlassian/jira/lib/postgresql-42.7.3.jar
+
+  adminer:
+    image: adminer:5.4.0
+    depends_on:
+      - postgres
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.adminer.rule=Host(`$ADMINER_DNS`)
+      - traefik.http.routers.adminer.entrypoints=web
+      - traefik.http.routers.adminer.service=adminer
+      - traefik.http.services.adminer.loadbalancer.server.port=8080
+
+volumes:
+  postgres-data:
+  jira-data:
