@@ -19,6 +19,9 @@ services:
     environment:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
+      - POSTGRES_ENCODING
+      - POSTGRES_COLLATE
+      - POSTGRES_COLLATE_TYPE
     labels:
         - traefik.enable=true
         - traefik.tcp.routers.postgres.rule=HostSNI(`*`)
@@ -35,6 +38,14 @@ services:
       - postgres
     environment:
       - VERBOSE_LOGS
+      - ATL_JDBC_URL
+      - ATL_JDBC_USER
+      - ATL_JDBC_PASSWORD
+      - SETENV_JVM_MINIMUM_MEMORY
+      - SETENV_JVM_MAXIMUM_MEMORY
+      - JIRA_PROXY_NAME
+      - JIRA_PROXY_PORT
+      - JIRA_PROXY_SCHEME
     labels:
       - traefik.enable=true
       - traefik.http.routers.jira.rule=Host(`$JIRA_DNS`)
