@@ -18,10 +18,18 @@ services:
     build: app/postgres
     environment:
       - POSTGRES_USER
+      - POSTGRES_DB
       - POSTGRES_PASSWORD
       - POSTGRES_ENCODING
       - POSTGRES_COLLATE
       - POSTGRES_COLLATE_TYPE
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
     labels:
         - traefik.enable=true
         - traefik.tcp.routers.postgres.rule=HostSNI(`*`)
@@ -41,8 +49,11 @@ services:
       - ATL_JDBC_URL
       - ATL_JDBC_USER
       - ATL_JDBC_PASSWORD
-      - SETENV_JVM_MINIMUM_MEMORY
-      - SETENV_JVM_MAXIMUM_MEMORY
+      - ATL_DB_SCHEMA_NAME
+      - ATL_DB_DRIVER
+      - ATL_DB_TYPE
+      - JVM_MINIMUM_MEMORY
+      - JVM_MAXIMUM_MEMORY
       - JIRA_PROXY_NAME
       - JIRA_PROXY_PORT
       - JIRA_PROXY_SCHEME
